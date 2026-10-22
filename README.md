@@ -1,5 +1,8 @@
 # 风场—温度—湿度三维精细场实时重构 + 飞行路径气象风险评估
 
+> **代码仓库**：https://github.com/fanqimcse/spectral-diag-m2metric
+> **版本**：v1.0.0 ｜ **许可**：MIT
+
 > **谱—诊断对应原理：场空间精度不是导数型诊断精度的代理量**
 > （The spectral–diagnostic correspondence principle: field-space accuracy is
 > not a proxy for derivative-diagnostic accuracy）

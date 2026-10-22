@@ -1,6 +1,7 @@
 # 论文水平再评估与期刊推荐（P5 完成后）
 
 > 评估时点：2026-10-22，P1–P5 全部闭环、m2metric 工具包与代码仓库就绪。
+> 代码仓库：https://github.com/fanqimcse/spectral-diag-m2metric （v1.0.0，MIT）
 
 ---
 
