@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "m2metric: M2 (second spectral moment) as a downstream-aware verification metric for derivative-based diagnostics"
+abstract: >-
+  Data assimilation systems have been validated by RMSE (the zeroth spectral
+  moment M0 of the background-error spectrum) for half a century. We show that
+  any downstream diagnostic built on spatial derivatives has error dominated by
+  the second spectral moment M2 = ∫k²E(k)dk, because the derivative operator is
+  a high-pass filter in wavenumber space. This yields a systematic "metric
+  blindness": RMSE misreports the value of scale-separation operators (which
+  only reduce M2, not M0). We provide an analytic theorem (M2/M0 = k₀²/2 for a
+  Gaussian spectrum), a four-to-six-fold amplification of derivative errors
+  verified on independent radiosonde and COSMIC-2 GNSS radio-occultation
+  observations, and a sufficient condition for scale-separation operators to be
+  safe for derivative diagnostics (ringing-free + direction-preserving).
+keywords:
+  - data assimilation
+  - verification metrics
+  - error spectra
+  - derivative diagnostics
+  - turbulence
+  - clear-air turbulence
+  - aviation meteorology
+license: MIT

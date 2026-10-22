@@ -1,0 +1,45 @@
+# ---- 数据与大型二进制（绝不入仓）----
+data/
+gfs/
+aws/
+cosmic2/
+madis/
+pirep/
+reanalysis/
+*.grib2
+*.nc
+*.npy
+*.npz
+*.csv
+*.xml
+*.zip
+*.tar.gz
+
+# ---- 工作目录（中间产物 / 缓存 / 探测脚本）----
+work/
+
+# ---- 日志 ----
+logs/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# ---- IDE / 系统 ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ---- 本地配置 ----
+*.local
+.env
+
+# ---- 工作区内部数据（非项目源码）----
+.workbuddy/
