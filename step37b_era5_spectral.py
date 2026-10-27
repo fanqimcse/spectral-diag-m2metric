@@ -35,6 +35,7 @@ import gc
 import glob
 import json
 import os
+import re
 import sys
 import time
 
@@ -49,11 +50,14 @@ from m2metric import spectrum2d as m2_spectrum2d
 
 OUT = "data/step37b_era5_spectral.json"
 ERA5_DIR = "data/era5"
-KEYS = S12.KEYS
+# 注意：S12.KEYS = ('T','q','u','v') 不含 z，但 stability_fields 需要 z 作为
+# 垂直坐标（层厚由虚温廓线积分得到），故此处必须显式补上 'z'。
+KEYS = tuple(S12.KEYS) + ("z",)
 CRUISE = (200.0, 400.0)
 NOISE_KM = 30.0        # 注入误差的空间相关长度（与 step36 [B] 一致）
 NOISE_FRAC = 0.02      # 误差幅度 = 2% × 场空间标准差
 SEED = 42
+N_TIMES = 4            # 参与汇总的 ERA5 时次数（下载多少就用多少，上限 4）
 
 
 # ======================================================================
@@ -83,8 +87,10 @@ def load_era5(path):
     fld = {}
     for k, cands in vmap.items():
         n = _pick(nc, cands)
-        a = np.asarray(nc.variables[n][:], float)
-        fld[k] = np.squeeze(a)          # 去掉 size-1 的 time 维
+        a = np.squeeze(np.asarray(nc.variables[n][:], float))
+        if a.ndim > 3:                  # 仍是多时次（未拆分的文件）：取首片
+            a = a[0]
+        fld[k] = a
     nc.close()
     return fld, lat, lon, lev
 
@@ -148,6 +154,32 @@ def rel_diag_error(dg_truth, dg_bg, key, mask):
     if s <= 0:
         return float("nan")
     return float(np.sqrt(np.nanmean(e[m] ** 2))) / s
+
+
+def median_runs(runs):
+    """对多个时次的结果取中位（稳健汇总），保留单时次明细在 era5_runs。"""
+    def med(path):
+        vals = []
+        for r in runs:
+            x = r
+            for p in path:
+                x = x.get(p) if isinstance(x, dict) else None
+                if x is None:
+                    break
+            if x is not None and np.isfinite(x):
+                vals.append(float(x))
+        return float(np.median(vals)) if vals else float("nan")
+
+    out = dict(n_times=len(runs),
+               rel_field_err=med(["rel_field_err"]),
+               rel_diag_err=med(["rel_diag_err"]),
+               amplification=med(["amplification"]),
+               operators={})
+    for op in ("a_hgauss", "b_hsharp", "c_vgauss"):
+        out["operators"][op] = dict(
+            rel_diag_err=med(["operators", op, "rel_diag_err"]),
+            d_pct=med(["operators", op, "d_pct"]))
+    return out
 
 
 def run_system(tag, truth, lat, lon, lev, above):
@@ -235,6 +267,11 @@ def main():
 
     files = sorted(glob.glob(os.path.join(ERA5_DIR, "era5_pl_*.nc")))
     files = [f for f in files if "_probe" not in f]
+    # 排除月度合并文件（era5_pl_YYYYMM.nc），只保留 step37_split_era5 拆出的单时次
+    single = [f for f in files
+              if re.search(r"era5_pl_\d{6}_.+\.nc$", os.path.basename(f))]
+    if single:
+        files = single
     if not files:
         print("\n未找到 ERA5 数据：%s 下无 era5_pl_*.nc" % ERA5_DIR)
         print("请先运行 step37_fetch_era5.py（需先在 CDS 网页接受数据集许可）。")
@@ -283,8 +320,21 @@ def main():
     # ---- [B][C] 双系统对照 ----
     print("\n[B][C] 导数放大与算子准则（Ri_dry，巡航带 200–400 hPa）")
     print("-" * 98)
-    res = dict(gfs=run_system("GFS ", g_fld, g_lat, g_lon, g_lev2, above),
-               era5=run_system("ERA5", e_fld, lat, lon, e_lev, above))
+    res = dict(gfs=run_system("GFS ", g_fld, g_lat, g_lon, g_lev2, above))
+
+    # ERA5：对每个已下载时次独立跑一遍再取中位（下载的时次全部用上）
+    era5_runs = []
+    for fp in files[:N_TIMES]:
+        f2, la2, lo2, le2 = load_era5(fp)
+        f2, la2, lo2, le2 = orient(f2, la2, lo2, le2, g_lat, g_lev)
+        if len(common) >= 5:
+            f2, le2 = subset_levels(f2, le2, common)
+        era5_runs.append(run_system("ERA5", f2, la2, lo2, le2, above))
+        del f2
+        gc.collect()
+    res["era5"] = median_runs(era5_runs)
+    res["era5_runs"] = era5_runs
+    print("  ERA5 汇总 %d 个时次（中位）" % len(era5_runs))
 
     amp_g = res["gfs"]["amplification"]
     amp_e = res["era5"]["amplification"]
