@@ -1980,7 +1980,11 @@ Kim et al. (2018)（G-GTG/WAFS）；Koh & Ng (2009) *JGR* 114, D12102（alpha in
 >
 > **短板是规模**（4 时次、东亚、单一 GFS 系统）。**单一系统短板已于 2026-10-27 补齐
 > （§15.8）**：ERA5（ECMWF IFS）独立系统上三条机制方向 3/3 复现、导数放大 6.45× vs 9.22×
-> 同一量级，剩余规模短板仅"时次≥20"（用于冲刺 npj Climate）。当前最现实的目标是
-> *Communications Earth & Environment* 或 *npj Climate and Atmospheric Science*，
-> *QJRMS* 为稳健保底。
+> 同一量级，剩余规模短板仅"时次≥20"。
+>
+> **期刊定位（2026-10-28 复核，见 `REASSESS_v7.md`）**：主攻 *Atmospheric Research*
+> （2 区 Top，命中率 65–75%，补 20 时次后约 85%）；*npj Climate and Atmospheric Science*
+> （1 区 Top）为**有条件冲刺**目标（补时次后 45–55%），非现实主攻。*QJRMS/MWR* 是
+> 学术对话最优解，但在地球科学大类分区表中为 **3 区**，仅在考核不卡分区时作为首选。
+> 具体取舍取决于考核口径（大类/小类、是否要求 Top），投前须先确认。
 
