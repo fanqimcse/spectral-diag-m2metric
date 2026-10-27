@@ -40,7 +40,7 @@ import sys
 import time
 
 import numpy as np
-from scipy.io import netcdf_file
+from netCDF4 import Dataset
 from scipy.ndimage import gaussian_filter
 
 sys.path.insert(0, ".")
@@ -71,15 +71,27 @@ def _pick(nc, cands):
                    % (cands, list(nc.variables.keys())))
 
 
+def _arr(var):
+    """netCDF4 变量 -> float ndarray，缺失值统一转 nan。
+
+    注意：CDS 现在的 'netcdf' 输出是 NetCDF4/HDF5，scipy.io.netcdf_file
+    只能读 NetCDF3，故统一改用 netCDF4.Dataset。
+    """
+    a = var[:]
+    if hasattr(a, "filled"):            # masked array -> nan
+        a = a.filled(np.nan)
+    return np.asarray(a, float)
+
+
 def load_era5(path):
-    """读一个 ERA5 等压面 netcdf，返回 (fld, lat, lon, lev)。"""
-    nc = netcdf_file(path, "r", mmap=False, maskandscale=True)
+    """读一个 ERA5 等压面 netcdf（NetCDF3/4 均可），返回 (fld, lat, lon, lev)。"""
+    nc = Dataset(path, "r")
     latn = _pick(nc, ["lat", "latitude"])
     lonn = _pick(nc, ["lon", "longitude"])
     levn = _pick(nc, ["level", "pressure_level", "plev"])
-    lat = np.asarray(nc.variables[latn][:], float)
-    lon = np.asarray(nc.variables[lonn][:], float)
-    lev = np.asarray(nc.variables[levn][:], float)
+    lat = _arr(nc.variables[latn])
+    lon = _arr(nc.variables[lonn])
+    lev = _arr(nc.variables[levn])
     vmap = {"T": ["t", "temperature"], "q": ["q", "specific_humidity"],
             "u": ["u", "u_component_of_wind"],
             "v": ["v", "v_component_of_wind"],
@@ -87,7 +99,7 @@ def load_era5(path):
     fld = {}
     for k, cands in vmap.items():
         n = _pick(nc, cands)
-        a = np.squeeze(np.asarray(nc.variables[n][:], float))
+        a = np.squeeze(_arr(nc.variables[n]))
         if a.ndim > 3:                  # 仍是多时次（未拆分的文件）：取首片
             a = a[0]
         fld[k] = a

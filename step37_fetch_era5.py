@@ -27,6 +27,23 @@
    取 2024 年 10 月：数据已稳定，且季节与 GFS 算例一致（同为秋季）。
    若需跨季节稳健性，把 MONTHS 改为 ["01","10"] 即可（请求数 +1）。
 
+网页表单（CDS Download tab）对照
+-------------------------------
+| 表单项            | 选择                                             |
+|-------------------|--------------------------------------------------|
+| Product type      | Reanalysis                                        |
+| Variable          | 见 VARS（5 个）                                    |
+| Pressure level    | 见 LEVELS（21 层，与 GFS 一致）                     |
+| Year / Month / Day| 2024 / 10 / 01,08,12,16                            |
+| Time              | 00:00 只勾一个                                     |
+| Geographical area | **Area selection**（不是 Whole available region）  |
+|                   | North=40, West=100, South=15, East=130            |
+| Data format       | **NetCDF4 (Experimental)**（不要 GRIB）            |
+| Download format   | **Unarchived**（若返回 zip 脚本会自动解压）         |
+
+注意："Data format" 必须选 NetCDF4 —— 本脚本与 step37b 用 netCDF4 库读取；
+scipy.io.netcdf_file 只能读 NetCDF3，读不了 CDS 现在的输出。
+
 数据源：CDS（Copernicus Climate Data Store），需 API key（~/.cdsapirc）。
 下载前必须先在网页接受数据集许可，否则返回 403 required licences not accepted。
 """
@@ -40,7 +57,9 @@ sys.path.insert(0, ".")
 import step12_enoi as S12
 
 OUT = "data/era5"
-# [N, W, E, S] = [北, 西, 东, 南]；与 S10.BBOX 一致（100–130°E, 15–40°N）
+# CDS 的 area 参数顺序为 [North, West, South, East]（注意不是 [N,W,E,S]）。
+# 这里 = 北 40 / 西 100 / 南 15 / 东 130，即 100–130°E, 15–40°N（东亚，与 GFS 一致）。
+# 网页表单对应 "Area selection"：North=40, West=100, South=15, East=130。
 BBOX = [40.0, 100.0, 15.0, 130.0]
 
 # ---- 层次：与 GFS 的 21 层完全一致（ERA5 标准等压面 37 层包含它们）----
@@ -76,6 +95,27 @@ def estimate_mb(levels, n_time):
     """
     nlon, nlat = 121, 101            # 0.25° over 100–130E / 15–40N
     return nlon * nlat * len(levels) * len(VARS) * n_time * 2 / 2.0 / 1e6
+
+
+def maybe_unzip(path):
+    """CDS 在单次请求产生多个文件时会打包成 zip；是 zip 则解压出 .nc。"""
+    try:
+        with open(path, "rb") as f:
+            head = f.read(2)
+    except OSError:
+        return [path]
+    if head != b"PK":
+        return [path]
+    import zipfile
+    d = os.path.dirname(path) or "."
+    out = []
+    with zipfile.ZipFile(path) as z:
+        for n in z.namelist():
+            if n.lower().endswith(".nc"):
+                z.extract(n, d)
+                out.append(os.path.join(d, n))
+    print("    解压 zip → %d 个 nc" % len(out))
+    return out or [path]
 
 
 def probe(c):
@@ -138,10 +178,11 @@ def main():
         try:
             c.retrieve(DATASET, req, dst)
             nreq += 1
+            got = maybe_unzip(dst)
             print("    → %s  %.1f MB  %.0fs"
-                  % (os.path.basename(dst),
-                     os.path.getsize(dst) / 1e6, time.time() - t0),
-                  flush=True)
+                  % (", ".join(os.path.basename(g) for g in got),
+                     sum(os.path.getsize(g) for g in got) / 1e6,
+                     time.time() - t0), flush=True)
         except Exception as e:
             print("    [失败] %s" % str(e)[:200], flush=True)
 
