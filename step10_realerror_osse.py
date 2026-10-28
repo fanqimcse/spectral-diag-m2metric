@@ -263,8 +263,8 @@ def attribution(rows, lead, nb=None):
     if abs(g_F) > 1e-9:
         print("  耦合 / 直报 = %.1f%%  ← 不花钱的软件方案能兑现直报湿度的比例"
               % (100 * g_D / g_F))
-    a_pct = [100 * (r["bg|q"] - r[k + "|q"]) / r["bg|q"]
-             for k in (NAMES[0], NAMES[1], NAMES[3], NAME_F)]
+    # （原此处有一行死代码 `a_pct = [...]`，变量 r 未定义、结果从未使用，
+    #   已在 step40 扩时次时删除。该行不影响任何输出，删除后行为不变。）
     return dict(q_A=g_A, q_B=g_B, q_D=g_D, q_F=g_F,
                 ci_gain=ci_D, ci_direct=ci_F, gain_lo=g_lo, gain_hi=g_hi,
                 n_times=n, rel_BA=abs(g_B - g_A),
